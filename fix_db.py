@@ -95,7 +95,10 @@ print('')
 
 print("Processing table: tbl_appinfo")
 
-cursor.execute("SELECT DISTINCT T.titleid FROM (SELECT titleid FROM %s) T WHERE T.titleid LIKE 'CUSA%%' AND T.titleid NOT IN (SELECT DISTINCT titleid FROM tbl_appinfo);" % (" UNION SELECT titleid FROM ".join(tbl_appbrowse)))
+tables = ' UNION SELECT titleid FROM '.join(tbl_appbrowse)
+query = f"SELECT DISTINCT T.titleid FROM (SELECT titleid FROM {tables}) T WHERE T.titleid LIKE 'CUSA%' AND T.titleid NOT IN (SELECT DISTINCT titleid FROM tbl_appinfo);"
+cursor.execute(query)
+
 missing_appinfo_cusa_id = cursor.fetchall()
 for tmp_cusa_id in missing_appinfo_cusa_id :
 	game_id = tmp_cusa_id[0]
