@@ -107,7 +107,7 @@ for tmp_cusa_id in missing_appinfo_cusa_id :
 	if(cusa.is_usable == True) :
 		sql_items = appinfo.get_pseudo_appinfo(cusa.sfo, cusa.size)
 		for key, value in sql_items.items():
-			cursor.execute("INSERT INTO tbl_appinfo (titleid, key, val) VALUES (?, ?, ?);", [game_id, key, value])
+            cursor.execute("INSERT INTO tbl_appinfo (titleid, metadataid, key, val) VALUES (?, ?, ?, ?);", [game_id, "prior:internal:0", key, value])
 		print("Completed")
 	else :
 		print("Skipped")
