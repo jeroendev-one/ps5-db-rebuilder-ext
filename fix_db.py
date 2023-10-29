@@ -13,7 +13,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("PS5_IP", help="PS5 IP address")
 args = parser.parse_args()
-app_db = "tmp/app.db"
+appinfo_db = "tmp/appinfo.db"
 PS5_IP = args.PS5_IP
 
 if not os.path.exists('tmp'):
@@ -57,11 +57,11 @@ if(len(files) == 0) :
 
 
 ftp.cwd('/system_data/priv/mms/')
-lf = open(app_db, "wb")
-ftp.retrbinary("RETR app.db" , lf.write)
+lf = open(appinfo_db, "wb")
+ftp.retrbinary("RETR appinfo.db" , lf.write)
 lf.close()
 
-conn = sqlite3.connect(app_db)
+conn = sqlite3.connect(appinfo_db)
 
 cursor = conn.cursor()
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'tbl_appbrowse_%%';")
@@ -117,6 +117,6 @@ conn.commit()
 conn.close()
 
 ftp.cwd('/system_data/priv/mms/')
-file = open(app_db,'rb')
-ftp.storbinary('STOR app.db', file)
+file = open(appinfo_db,'rb')
+ftp.storbinary('STOR appinfo.db', file)
 file.close()
