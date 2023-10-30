@@ -82,13 +82,28 @@ if len(files) == 0:
     ftp.cwd('/user/app/')
     ftp.dir(sort_files)
     print(' ')
-    print("Games found in /user/app:")
+    print("Titles found in /user/app:")
     print(' ')
     for file in files:
         GameID = file.replace("'", "")
         cusa = get_game_info_by_id(GameID)
         print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
  
+ ## Get current title id's from tbl_appinfo
+conn = sqlite3.connect(dirs_to_create[0] + '/' + "appinfo.db")
+
+cursor = conn.cursor()
+cursor.execute("SELECT DISTINCT titleid from tbl_appinfo WHERE titleid like 'CUSA%%';")
+titles_appinfo = cursor.fetchall()
+if len(titles_appinfo) == 0:
+    print(' ')
+    print("No titles found in database. Probably why you are running this script ;)")
+else:
+    print(' ')
+    print("Titles found in database:")
+    for title in titles_appinfo:
+        print(title[0])
+
 
 
 
