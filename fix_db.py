@@ -100,17 +100,17 @@ query = f"SELECT DISTINCT T.titleid FROM (SELECT titleid FROM {tables}) T WHERE 
 cursor.execute(query)
 
 missing_appinfo_cusa_id = cursor.fetchall()
-for tmp_cusa_id in missing_appinfo_cusa_id :
-	game_id = tmp_cusa_id[0]
-	print("	Processing GameID: %s... " % game_id, end='')
-	cusa = get_game_info_by_id(game_id)
-	if(cusa.is_usable == True) :
-		sql_items = appinfo.get_pseudo_appinfo(cusa.sfo, cusa.size)
-		for key, value in sql_items.items():
+for tmp_cusa_id in missing_appinfo_cusa_id:
+    game_id = tmp_cusa_id[0]
+    print("Processing GameID: %s... " % game_id, end='')
+    cusa = get_game_info_by_id(game_id)
+    if cusa.is_usable:
+        sql_items = appinfo.get_pseudo_appinfo(cusa.sfo, cusa.size)
+        for key, value in sql_items.items():
             cursor.execute("INSERT INTO tbl_appinfo (titleid, metadataid, key, val) VALUES (?, ?, ?, ?);", [game_id, "prior:internal:0", key, value])
-		print("Completed")
-	else :
-		print("Skipped")
+        print("Completed")
+    else:
+        print("Skipped")
 
 conn.commit()
 
