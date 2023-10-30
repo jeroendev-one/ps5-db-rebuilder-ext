@@ -3,6 +3,7 @@
 
 ## Requirements
 from ftplib import FTP
+from sfo.sfo import SfoFile as SfoFile
 import sqlite3
 import io
 import os
