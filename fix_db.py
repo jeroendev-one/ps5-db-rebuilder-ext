@@ -55,9 +55,6 @@ dirs_to_create = ['tmp', 'backup']
 for directory in dirs_to_create:
     if not os.path.exists(directory):
         os.makedirs(directory)
-        print(f"INFO:: Created '{directory}' directory")
-    else:
-        print(f"INFO:: '{directory}' directory already exists")
 
 # Start FTP connection
 ftp = FTP()
@@ -91,18 +88,38 @@ if len(files) == 0:
  
  ## Get current title id's from tbl_appinfo
 conn = sqlite3.connect(dirs_to_create[0] + '/' + "appinfo.db")
-
 cursor = conn.cursor()
 cursor.execute("SELECT DISTINCT titleid from tbl_appinfo WHERE titleid like 'CUSA%%';")
 titles_appinfo = cursor.fetchall()
 if len(titles_appinfo) == 0:
     print(' ')
-    print("No titles found in database. Probably why you are running this script ;)")
+    print("No CUSA titles found in database. Probably why you are running this script ;)")
 else:
     print(' ')
     print("Titles found in database:")
     for title in titles_appinfo:
         print(title[0])
+
+# Convert the lists of titles into sets
+files_set = set(files)
+titles_appinfo_set = set(title[0] for title in titles_appinfo)
+
+# Find titles in files_set that are not in titles_appinfo_set
+missing_titles = files_set - titles_appinfo_set
+
+# Print the missing titles
+if missing_titles:
+    print(' ')
+    print("Titles in /user/app but not in the database:")
+    for title in missing_titles:
+        GameID = title.replace("'", "")
+        cusa = get_game_info_by_id(GameID)
+        print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
+else:
+    print(' ')
+    print("All titles in /user/app are also in the database.")
+
+
 
 
 
