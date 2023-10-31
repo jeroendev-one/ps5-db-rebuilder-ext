@@ -12,21 +12,24 @@ import argparse
 ## Argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("PS5_IP", help="PS5 IP address")
-parser.add_argument("ext_disk", choices=["ext0", "ext1"], help="External interface (ext0 or ext1)")
+parser.add_argument("EXT_DISK", choices=["ext0", "ext1"], help="External interface (ext0 or ext1)")
 args = parser.parse_args()
 
 ## Variables
 PS5_IP = args.PS5_IP
+EXT_DISK = args.EXT_DISK
 ftp_port = 1337
 ps5_db_folder = '/system_data/priv/mms/'
 files = []
 info = {}
 
 # Set variables based on parameters {ext0,ext1}
-if ext_disk == 'ext1':
+if EXT_DISK == 'ext1':
     app_dir = '/mnt/ext1/user/app'
-elif ext_disk == 'ext0':
+    print(f"App directory set to {app_dir}")
+elif EXT_DISK == 'ext0':
     app_dir = '/mnt/ext0/user/app'
+    print(f"App directory set to {app_dir}")
 
 # CUSA class
 class CUSA :
@@ -83,11 +86,9 @@ for file_name in files_to_copy:
 # Create list of games on the system that are (probably) missing
 ## If external, change to /mnt/ext0/user/app or /mnt/ext1/user/app
 if len(files) == 0:
-    ftp.cwd('/user/app/')
+    ftp.cwd(app_dir)
     ftp.dir(sort_files)
-    print(' ')
-    print("Titles found in /user/app:")
-    print(' ')
+    print(f"\nTitles found in {app_dir}:\n")
     for file in files:
         GameID = file.replace("'", "")
         cusa = get_game_info_by_id(GameID)
@@ -99,11 +100,9 @@ cursor = conn.cursor()
 cursor.execute("SELECT DISTINCT titleid from tbl_appinfo WHERE titleid like 'CUSA%%';")
 titles_appinfo = cursor.fetchall()
 if len(titles_appinfo) == 0:
-    print(' ')
-    print("No CUSA titles found in database. Probably why you are running this script ;)")
+    print("\nNo CUSA titles found in database. Probably why you are running this script ;)")
 else:
-    print(' ')
-    print("Titles found in database:")
+    print("\nTitles found in database:")
     for title in titles_appinfo:
         print(title[0])
 
@@ -115,16 +114,16 @@ titles_appinfo_set = set(title[0] for title in titles_appinfo)
 missing_titles = files_set - titles_appinfo_set
 
 # Print the missing titles
-if missing_titles:
-    print(' ')
-    print("Titles in /user/app but not in the database:")
+if len(missing_titles) > 0:
+    print(f"\nTitles in {app_dir} but not in the database:")
     for title in missing_titles:
         GameID = title.replace("'", "")
         cusa = get_game_info_by_id(GameID)
         print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
+elif len(missing_titles) == 0:
+    print(f"No titles missing in database which are also in {app_dir}")
 else:
-    print(' ')
-    print("All titles in /user/app are also in the database.")
+    print(f"\nAll titles in {app_dir} are also in the database.")
 
 
 
