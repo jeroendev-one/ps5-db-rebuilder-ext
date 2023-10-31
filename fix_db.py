@@ -12,6 +12,7 @@ import argparse
 ## Argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("PS5_IP", help="PS5 IP address")
+parser.add_argument("ext_disk", choices=["ext0", "ext1"], help="External interface (ext0 or ext1)")
 args = parser.parse_args()
 
 ## Variables
@@ -20,6 +21,12 @@ ftp_port = 1337
 ps5_db_folder = '/system_data/priv/mms/'
 files = []
 info = {}
+
+# Set variables based on parameters {ext0,ext1}
+if ext_disk == 'ext1':
+    app_dir = '/mnt/ext1/user/app'
+elif ext_disk == 'ext0':
+    app_dir = '/mnt/ext0/user/app'
 
 # CUSA class
 class CUSA :
