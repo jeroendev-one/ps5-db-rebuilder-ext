@@ -19,7 +19,7 @@ args = parser.parse_args()
 ## Variables
 PS5_IP = args.PS5_IP
 EXT_DISK = args.EXT_DISK
-ftp_port = 1337
+ftp_port = 2121
 ps5_db_folder = '/system_data/priv/mms/'
 info_msg = 'INFO::'
 error_msg = 'ERROR::'
@@ -51,7 +51,7 @@ def get_game_info_by_id(GameID) :
 		info[GameID] = CUSA()
 
 		buffer = io.BytesIO()
-		ftp.cwd('/system_data/priv/appmeta/%s/' % GameID)
+		ftp.cwd('/system_data/priv/appmeta/external/%s/' % GameID)
 		ftp.retrbinary("RETR param.sfo" , buffer.write)
 		buffer.seek(0)
 		sfo = SfoFile.from_reader(buffer)
@@ -110,11 +110,13 @@ if len(titles_appinfo) == 0:
 else:
     print(f"\n{info_msg} Titles found in database:")
     for title in titles_appinfo:
-        print(title[0])
+        GameID = title[0]
+        cusa = get_game_info_by_id(GameID)
+        print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
 
-# Convert the lists of titles into sets
-files_set = set(files)
-titles_appinfo_set = set(title[0] for title in titles_appinfo)
+# Convert the list of titles into sets while removing single quotes
+files_set = set(title.strip("'") for title in files)
+titles_appinfo_set = set(title[0].strip("'") for title in titles_appinfo)
 
 # Find titles in files_set that are not in titles_appinfo_set
 missing_titles = files_set - titles_appinfo_set
@@ -127,9 +129,8 @@ if len(missing_titles) > 0:
         cusa = get_game_info_by_id(GameID)
         print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
 elif len(missing_titles) == 0:
-    print(f"{info_msg} No titles missing in database which are also in {app_dir}")
-else:
     print(f"\n{info_msg} All titles in {app_dir} are also in the database.")
+        
 
 
 
