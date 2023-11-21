@@ -9,6 +9,7 @@ import io
 import os
 import sys
 import argparse
+import subprocess
 
 ## Argparse
 parser = argparse.ArgumentParser()
@@ -112,6 +113,7 @@ else:
     for title in titles_appinfo:
         GameID = title[0]
         cusa = get_game_info_by_id(GameID)
+            
         print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
 
 # Convert the list of titles into sets while removing single quotes
@@ -123,17 +125,34 @@ missing_titles = files_set - titles_appinfo_set
 
 # Print the missing titles
 if len(missing_titles) > 0:
+
     print(f"\n{info_msg} Titles in {app_dir} but not in the database:")
     for title in missing_titles:
         GameID = title.replace("'", "")
         cusa = get_game_info_by_id(GameID)
         print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
+
 elif len(missing_titles) == 0:
     print(f"\n{info_msg} All titles in {app_dir} are also in the database.")
-        
 
+## Now really fixing the issues
+if len(missing_titles) > 0:
+    print(f"\n----------------------------")
+    print("Starting to process missing title ID's")
+    print(f"----------------------------\n")
+    for title in missing_titles:
+        GameID = title.replace("'", "")
+        cusa = get_game_info_by_id(GameID)
+        print(f"Processing: {cusa.sfo['TITLE_ID']} - {cusa.sfo['TITLE']}")
 
+        content_id = cusa.sfo['CONTENT_ID']
+        process = subprocess.Popen(['python', 'get_conceptid.py', content_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
 
+        if stderr:
+            print(f"Error occurred: {stderr.decode('utf-8')}")
+        else:
+            print(f"Concept ID for: {cusa.sfo['TITLE']}: {stdout.decode('utf-8')}")
 
-
-
+            
+    
