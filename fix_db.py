@@ -76,16 +76,24 @@ ftp.connect(PS5_IP, ftp_port, timeout=30)
 ftp.login(user='username', passwd = 'password')
 
 # List of DB files to copy to temporary folder
-files_to_copy = ['app.db', 'appinfo.db']
-for file_name in files_to_copy:
-    print(f"{info_msg} Copying file: {file_name} from {ps5_db_folder}")
-    try:
-        ftp.cwd(ps5_db_folder)
-        lf = open(dirs_to_create[0] + '/' + file_name, "wb")
-        ftp.retrbinary(f"RETR {file_name}", lf.write)
-        lf.close()
-    except Exception as e:
-        print(f"{error_msg} Error copying {file_name}: {str(e)}")
+
+
+# List of DB files to copy to a folder named "backup"
+files_to_copy = {
+    'app.db': '/system_data/priv/mms',
+    'appinfo.db': '/system_data/priv/mms',
+    'concept_title.db': '/system/priv/mms_ro'
+}
+
+for file_name, remote_path in files_to_copy.items():
+    local_file_path = os.path.join(dirs_to_create[0], file_name)
+
+    # Check if the file exists and is a regular file
+    with open(local_file_path, 'wb') as local_file:
+        ftp.cwd(remote_path)
+        ftp.retrbinary(f'RETR {file_name}', local_file.write)
+    print(f"File {file_name} downloaded successfully.")
+
 
 # Create list of games on the system that are (probably) missing
 ## If external, change to /mnt/ext0/user/app or /mnt/ext1/user/app
@@ -95,8 +103,8 @@ if len(files) > 0:
     print(f"\n{info_msg} Titles found in {app_dir}:\n")
     for file in files:
         GameID = file.replace("'", "")
-        cusa = get_game_info_by_id(GameID)
-        print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
+        game = get_game_info_by_id(GameID)
+        print(game.sfo['TITLE_ID'] + ' - ' + game.sfo['TITLE'])
 else:
     print(f"{error_msg} No titles found in {app_dir}")
     sys.exit(1)
@@ -112,9 +120,9 @@ else:
     print(f"\n{info_msg} Titles found in database:")
     for title in titles_appinfo:
         GameID = title[0]
-        cusa = get_game_info_by_id(GameID)
+        game = get_game_info_by_id(GameID)
             
-        print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
+        print(game.sfo['TITLE_ID'] + ' - ' + game.sfo['TITLE'])
 
 # Convert the list of titles into sets while removing single quotes
 files_set = set(title.strip("'") for title in files)
@@ -129,8 +137,8 @@ if len(missing_titles) > 0:
     print(f"\n{info_msg} Titles in {app_dir} but not in the database:")
     for title in missing_titles:
         GameID = title.replace("'", "")
-        cusa = get_game_info_by_id(GameID)
-        print(cusa.sfo['TITLE_ID'] + ' - ' + cusa.sfo['TITLE'])
+        game = get_game_info_by_id(GameID)
+        print(game.sfo['TITLE_ID'] + ' - ' + game.sfo['TITLE'])
 
 elif len(missing_titles) == 0:
     print(f"\n{info_msg} All titles in {app_dir} are also in the database.")
@@ -142,17 +150,66 @@ if len(missing_titles) > 0:
     print(f"----------------------------\n")
     for title in missing_titles:
         GameID = title.replace("'", "")
-        cusa = get_game_info_by_id(GameID)
-        print(f"Processing: {cusa.sfo['TITLE_ID']} - {cusa.sfo['TITLE']}")
+        game = get_game_info_by_id(GameID)
+        cusa = game.sfo['TITLE_ID']
+        title = game.sfo['TITLE']
+        version = game.sfo['VERSION']
+        content_id = game.sfo['CONTENT_ID']
+        print(f"Processing: {cusa} - {title}")
 
-        content_id = cusa.sfo['CONTENT_ID']
-        process = subprocess.Popen(['python', 'get_conceptid.py', content_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        # Try to get concept ID from concept_title.db
+        conn = sqlite3.connect(dirs_to_create[0] + '/' + "concept_title.db")
+        cursor = conn.cursor()
 
-        if stderr:
-            print(f"Error occurred: {stderr.decode('utf-8')}")
+        cursor.execute(f"SELECT concept_id FROM tbl_concept_title WHERE title_id = ?", (cusa,))
+        result = cursor.fetchone()
+
+        if result:
+            concept_id = result[0]
+            print(f"Concept ID for title ID {cusa} is: {concept_id}")
         else:
-            print(f"Concept ID for: {cusa.sfo['TITLE']}: {stdout.decode('utf-8')}")
+            print(f"Concept ID not found. Setting to 0")
+            concept_id = '0'
+        #print(concept_id)
 
-            
-    
+
+        # Import huge dict
+        from appinfo_dict import data_lines
+
+        data_to_insert = []
+
+        for line in data_lines:
+            line = line.format(cusa=cusa, title=title, version=version, content_id=content_id)
+            parts = line.split(' ')
+            metaDataId = parts[0]
+            key = parts[1]
+            val = ' '.join(parts[2:]) if len(parts) > 2 else ''  # Concatenate the rest as 'val'
+
+            data_entry = {
+                'titleid': cusa,
+                'metaDataId': metaDataId,
+                'key': key,
+                'val': val
+            }
+            data_to_insert.append(data_entry)
+
+        # Display the resulting list of dictionaries
+        #for entry in data_to_insert:
+            #print(entry)
+
+        # Create a connection to the database
+        conn = sqlite3.connect(dirs_to_create[0] + '/' + "appinfo.db")
+        cursor = conn.cursor()
+
+        # Define SQL query for insertion
+        sql_query = "INSERT INTO tbl_appinfo (titleid, metaDataId, key, val) VALUES (?, ?, ?, ?)"
+
+        # Prepare data for insertion
+        data_to_insert_values = [(entry['titleid'], entry['metaDataId'], entry['key'], entry['val']) for entry in data_to_insert]
+
+        # Execute the insertion query using executemany()
+        cursor.executemany(sql_query, data_to_insert_values)
+
+        # Commit the changes and close the connection
+        conn.commit()
+        conn.close()
