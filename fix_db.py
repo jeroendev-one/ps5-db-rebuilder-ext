@@ -20,7 +20,7 @@ args = parser.parse_args()
 ## Variables
 PS5_IP = args.PS5_IP
 EXT_DISK = args.EXT_DISK
-ftp_port = 2121
+ftp_port = 1337
 ps5_db_folder = '/system_data/priv/mms/'
 info_msg = 'INFO::'
 error_msg = 'ERROR::'
@@ -167,6 +167,9 @@ if len(missing_titles) > 0:
         if result:
             concept_id = result[0]
             print(f"Concept ID for title ID {cusa} is: {concept_id}")
+            hexadecimal_lower = hex(concept_id)[2:]  # [2:] to remove '0x' prefix
+            hexadecimal_lower = hexadecimal_lower.lower()  # Convert to lowercase
+            print(hexadecimal_lower)
         else:
             print(f"Concept ID not found. Setting to 0")
             concept_id = '0'
@@ -179,7 +182,7 @@ if len(missing_titles) > 0:
         data_to_insert = []
 
         for line in data_lines:
-            line = line.format(cusa=cusa, title=title, version=version, content_id=content_id)
+            line = line.format(cusa=cusa, title=title, version=version, content_id=content_id, EXT_DISK=EXT_DISK)
             parts = line.split(' ')
             metaDataId = parts[0]
             key = parts[1]
@@ -213,3 +216,9 @@ if len(missing_titles) > 0:
         # Commit the changes and close the connection
         conn.commit()
         conn.close()
+
+        print("Missing games re-added to tbl_appinfo from appinfo.db!")
+        print(f"Proceeding with app.db now....\n")
+
+
+
